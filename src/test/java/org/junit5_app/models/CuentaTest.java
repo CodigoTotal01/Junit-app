@@ -1,6 +1,8 @@
 package org.junit5_app.models;
 // error scope - resolved - https://stackoverflow.com/questions/51567754/junit-on-intellij-not-working
 
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit5_app.exception.DineroInsuficienteException;
 
@@ -9,11 +11,11 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CuentaTest {
-
-
-    @Test
-        // Metodo a ejecutar ocmo prueva unitaria
+    @Test// Metodo a ejecutar ocmo prueva unitaria
+    @Disabled //! Desabilitar prueba (solo se lo salta)
+    @DisplayName("Probando el nombr de la cuenta corriente!")    //descripcion del test
     void testNombreCuenta() {
+// Para fallar la prueba(metodo)  -    fail();
         Cuenta cuenta = new Cuenta("Andres", new BigDecimal(10000.2121));
         cuenta.setPersona("Palacios");
         String esperando = "Palacios";
@@ -26,6 +28,7 @@ class CuentaTest {
     }
 
     @Test
+    @DisplayName("test de saldo de cuenta corriente")
     void testSaldoCuenta() {
         Cuenta cuenta = new Cuenta("Palacios", new BigDecimal("213.123213"));
         assertEquals(213.123213, cuenta.getSaldo().doubleValue()); //castear valor value
@@ -34,6 +37,7 @@ class CuentaTest {
     }
 
     @Test
+    @DisplayName("Las dos cuentas deben ser iguales") // tambien podemso poner exactamente l oque debe pasar
     void testReferenciaCuenta() {
         Cuenta cuenta = new Cuenta("Pereyra", new BigDecimal("1321321.313213"));
         Cuenta cuenta2 = new Cuenta("Pereyra", new BigDecimal("1321321.313213"));
@@ -42,6 +46,7 @@ class CuentaTest {
     }
 
     @Test
+    @DisplayName("Debe gestionar el debito del cliente")
     void testDebitoCuenta() { //disminuye
         Cuenta cuenta = new Cuenta("Palacios", new BigDecimal("1000.0000"));
         cuenta.debito(new BigDecimal(100));
@@ -53,6 +58,7 @@ class CuentaTest {
 
 
     @Test
+    @DisplayName("Debe gestionar el credito del cliente")
     void testCreditoCuenta() { //aumenta
         Cuenta cuenta = new Cuenta("Palacios", new BigDecimal("1000.0000"));
         cuenta.credito(new BigDecimal(100));
