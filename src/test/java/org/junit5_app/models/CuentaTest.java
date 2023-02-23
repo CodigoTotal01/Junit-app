@@ -1,16 +1,19 @@
 package org.junit5_app.models;
-// error scope - resolved - https://stackoverflow.com/questions/51567754/junit-on-intellij-not-working
-
+import jdk.jfr.Enabled;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.*;
 import org.junit5_app.exception.DineroInsuficienteException;
 
 import java.math.BigDecimal;
+import java.util.Map;
+import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
- // #Ciclos de vida, por cada vez se crea una nueva instancia de la clase, evitar las dependencias fuertes por cada metodo o prueba rgenerar nuestro objeto
+import static org.junit.jupiter.api.Assumptions.*;
+//Test Condicionales - Pruebas unitarias se ejecuen en ciertos OS o versiones java, se
 
-// La clase es el TEST, los metodos test son las pruebas
-// @TestInstance(TestInstance.Lifecycle.PER_CLASS) //genera una solla referencia de la claes y manejara una sola intancia de la clase , se puede uqitar como metodos estaticos
+// nest se generaran nodos con un orden de gerarquia
+
 class CuentaTest {
 
     Cuenta cuenta;
@@ -50,14 +53,6 @@ class CuentaTest {
         //? Methods assertions - message
         assertEquals(esperando, real, "El nombre de la cuenta no es el que se esperaba");
         assertTrue(real.equals("Palacios"), "El nombre cuenta esperadoa debe ser igual a la real ");
-    }
-
-    @Test
-    @DisplayName("test de saldo de cuenta corriente")
-    void testSaldoCuenta() {
-        cuenta = new Cuenta("Palacios", new BigDecimal("213.123213"));
-        assertEquals(213.123213, cuenta.getSaldo().doubleValue());
-        assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
     }
 
     @Test
@@ -101,7 +96,7 @@ class CuentaTest {
     }
 
 
-    @Test
+    @RepeatedTest(5)
     void transferirDineroCuentas() {
         Cuenta cuenta1 = new Cuenta("Palacios", new BigDecimal("2500"));
         Cuenta cuenta2 = new Cuenta("Ariana", new BigDecimal("2500"));
@@ -140,4 +135,122 @@ class CuentaTest {
 
         );
     }
+
+
+    @Nested // para agrupar pruebas dentro de sus propios test, pero teniendo en ceunta la clase principal@
+        @DisplayName("Se le peude dar al a clase un nombre para ser mas esceificos ")
+    class sistemasOperativos{
+        @Test
+        @EnabledOnOs(OS.WINDOWS)
+        void testSoloWindows(){
+
+        }
+
+        //estara desabilidato si no esta ejecutandoce en este sistema operativo
+
+        @Test
+        @EnabledOnOs({OS.LINUX, OS.MAC})
+        void testSoloLinuxMac(){
+
+        }
+
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
+        void testNoWindows(){
+
+        }
+
+
+
+
+    }
+
+
+    //desabilitar si existe scierta cosa en el sistema
+    @Nested
+    class JavaVersionTest{
+        @Test
+        @EnabledOnJre(JRE.JAVA_17)
+        void soloEnJdk17(){
+
+        }
+    }
+
+    @Nested
+    class SistemPropertiesTest{
+        @Test
+        void imprimirPropiedades(){
+            Properties properties = System.getProperties();
+            properties.forEach((k, l)-> System.out.println(k + " : " + l));
+        }
+        @Test
+        @EnabledIfSystemProperty(named = "java.version", matches = "17")
+        void testJavaVersion(){
+
+        }
+
+
+        @Test
+        @EnabledIfSystemProperty(named = "ENV", matches = "dev")
+        void testUsername(){
+        }
+
+
+
+
+
+        @Test
+        @DisabledIfSystemProperty(named = "os.arch", matches = "32")
+        void testSolo64(){
+
+        }
+
+
+
+    }
+
+    @Nested
+    class VariablesAmbienteTest{
+
+        //Vairables del sistema operativo
+
+        @Test
+        void imprimirVariablesAmbiente(){
+            Map<String, String> getenv = System.getenv();
+            getenv.forEach((k,v)-> System.out.println(k+ " : " + v));
+        }
+
+
+
+        //aseption afirmar prueba unitaria
+        //assumtion - afirmar puerba unitaria con valores booleanos
+
+        //test condicional Assumption
+        @Test
+        @DisplayName("test de saldo de cuenta corriente")
+        void testSaldoCuentaDEV() {
+            boolean esDev = "dev".equals(System.getProperty("ENV"));
+            System.out.println(System.getProperty("ENV"));
+            assumeTrue(esDev); //s i es verdadero ejecuta la prueva
+            cuenta = new Cuenta("Palacios", new BigDecimal("213.123213"));
+            assertEquals(213.123213, cuenta.getSaldo().doubleValue());
+            assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
+        }
+
+        @Test
+        @DisplayName("test de saldo de cuenta corriente")
+        void testSaldoCuentaDEV2() {
+            boolean esDev = "dev".equals(System.getProperty("ENV"));
+            System.out.println(System.getProperty("ENV"));
+            assumingThat(esDev, () -> { //assumi that - permite ejecutar un determinado codigo si es verdad algo
+                cuenta = new Cuenta("Palacios", new BigDecimal("213.123213"));
+                assertEquals(213.123213, cuenta.getSaldo().doubleValue());
+                assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
+            }); //s i es verdadero ejecuta la prueva
+
+        }
+    }
+
+
+
 }
