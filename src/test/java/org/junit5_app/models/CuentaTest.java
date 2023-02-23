@@ -1,86 +1,102 @@
 package org.junit5_app.models;
 // error scope - resolved - https://stackoverflow.com/questions/51567754/junit-on-intellij-not-working
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit5_app.exception.DineroInsuficienteException;
 
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
+ // #Ciclos de vida, por cada vez se crea una nueva instancia de la clase, evitar las dependencias fuertes por cada metodo o prueba rgenerar nuestro objeto
 
+// La clase es el TEST, los metodos test son las pruebas
+// @TestInstance(TestInstance.Lifecycle.PER_CLASS) //genera una solla referencia de la claes y manejara una sola intancia de la clase , se puede uqitar como metodos estaticos
 class CuentaTest {
-    @Test// Metodo a ejecutar ocmo prueva unitaria
-    @Disabled //! Desabilitar prueba (solo se lo salta)
-    @DisplayName("Probando el nombr de la cuenta corriente!")    //descripcion del test
+
+    Cuenta cuenta;
+
+    @BeforeEach
+    void initMetodoTest(){
+        this.cuenta = new Cuenta("Andres", new BigDecimal(2500));
+
+        System.out.println("(inidio del metodo) Lo que se repite a cada rato dentro de los metodos");
+    }
+
+    @AfterEach
+    void tearDown(){
+        System.out.println("finaliza los metodos");
+    }
+
+    @BeforeAll
+    static void beforeAll() {
+        System.out.println("inicializando el test (se llama de manera estatica )");
+    }
+
+
+    @AfterAll
+    static void afterAll() {
+        System.out.println("Una ves se hallan ejecutado todos los metodos de prueba");
+    }
+
+    @Test //metodos
+    @Disabled
+    @DisplayName("Probando el nombr de la cuenta corriente!")
     void testNombreCuenta() {
 // Para fallar la prueba(metodo)  -    fail();
-        Cuenta cuenta = new Cuenta("Andres", new BigDecimal(10000.2121));
         cuenta.setPersona("Palacios");
         String esperando = "Palacios";
         String real = cuenta.getPersona();
         //assertEquals: varifica dos valores si  son iguales
         //? Methods assertions - message
-        assertEquals(esperando, real, "El nombre de la cuenta no es el que se esperaba");// message only show it if we get a error
-        assertTrue(real.equals("Palacios"), "El nombre cuenta esperadoa debe ser igual a la real "); // verifica si el valor es correcto
-        //Si no hay noticias, (asertions), siempre estaran correctos
+        assertEquals(esperando, real, "El nombre de la cuenta no es el que se esperaba");
+        assertTrue(real.equals("Palacios"), "El nombre cuenta esperadoa debe ser igual a la real ");
     }
 
     @Test
     @DisplayName("test de saldo de cuenta corriente")
     void testSaldoCuenta() {
-        Cuenta cuenta = new Cuenta("Palacios", new BigDecimal("213.123213"));
-        assertEquals(213.123213, cuenta.getSaldo().doubleValue()); //castear valor value
-
-        assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0); // evalua si es falso, si es asi es correcto
+        cuenta = new Cuenta("Palacios", new BigDecimal("213.123213"));
+        assertEquals(213.123213, cuenta.getSaldo().doubleValue());
+        assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
     }
 
     @Test
-    @DisplayName("Las dos cuentas deben ser iguales") // tambien podemso poner exactamente l oque debe pasar
+    @DisplayName("Las dos cuentas deben ser iguales")
     void testReferenciaCuenta() {
-        Cuenta cuenta = new Cuenta("Pereyra", new BigDecimal("1321321.313213"));
+        cuenta = new Cuenta("Pereyra", new BigDecimal("1321321.313213"));
         Cuenta cuenta2 = new Cuenta("Pereyra", new BigDecimal("1321321.313213"));
-        //comparando referencias de la clase (instancia)
         assertEquals(cuenta2, cuenta);
     }
 
     @Test
     @DisplayName("Debe gestionar el debito del cliente")
-    void testDebitoCuenta() { //disminuye
-        Cuenta cuenta = new Cuenta("Palacios", new BigDecimal("1000.0000"));
+    void testDebitoCuenta() {
         cuenta.debito(new BigDecimal(100));
         assertNotNull(cuenta.getSaldo());
-        assertEquals(900, cuenta.getSaldo().intValue()); //verificando como entero
-        assertEquals("900.0000", cuenta.getSaldo().toPlainString()); //dverruificando como string
+        assertEquals(2400, cuenta.getSaldo().intValue());
+        assertEquals("2400", cuenta.getSaldo().toPlainString());
 
     }
 
 
     @Test
     @DisplayName("Debe gestionar el credito del cliente")
-    void testCreditoCuenta() { //aumenta
-        Cuenta cuenta = new Cuenta("Palacios", new BigDecimal("1000.0000"));
-        cuenta.credito(new BigDecimal(100));
+    void testCreditoCuenta() {
+        cuenta.credito(new BigDecimal(500));
         assertNotNull(cuenta.getSaldo());
-        assertEquals(1100, cuenta.getSaldo().intValue()); //verificando como entero
-        assertEquals("1100.0000", cuenta.getSaldo().toPlainString()); //dverruificando como string
+        assertEquals(3000, cuenta.getSaldo().intValue());
+        assertEquals("3000", cuenta.getSaldo().toPlainString());
     }
 
 
-    //Probar clase s de exception
     @Test
     void testDineroInsuficienteException() {
-        Cuenta cuenta = new Cuenta("Andres", new BigDecimal("1000.0000"));
         System.out.println(DineroInsuficienteException.class);
-        //devuelve el objeto exception, .class toma la ruta de la carpeta donde esta oubicadaa la clase
         Exception exception = assertThrows(DineroInsuficienteException.class, () -> {
-            cuenta.debito(new BigDecimal(1500));
+            cuenta.debito(new BigDecimal(888888));
         });
-
         String actual = exception.getMessage();
         String esperado = "Dinero Insuficiente";
-
         assertEquals(esperado, actual);
     }
 
@@ -89,7 +105,6 @@ class CuentaTest {
     void transferirDineroCuentas() {
         Cuenta cuenta1 = new Cuenta("Palacios", new BigDecimal("2500"));
         Cuenta cuenta2 = new Cuenta("Ariana", new BigDecimal("2500"));
-
         Banco banco = new Banco();
         banco.setNombre("BBVA");
         banco.transferir(cuenta2, cuenta1, new BigDecimal(500));
@@ -97,7 +112,6 @@ class CuentaTest {
         assertEquals("3000", cuenta1.getSaldo().toPlainString());
     }
 
-    //comprobando la relacion entre clientes y cuentas
     @Test
     void testRelacionBancoCuentas() {
         Cuenta cuenta1 = new Cuenta("Palacios", new BigDecimal("2500"));
@@ -109,11 +123,7 @@ class CuentaTest {
 
         banco.setNombre("BBVA");
         banco.transferir(cuenta2, cuenta1, new BigDecimal(500));
-        //cada uno erra independientemente
-        assertAll(
-                () -> {
-                    //mensajes de eror en un assertion method dentro de un aassertAll
-                    assertEquals("2000", cuenta2.getSaldo().toPlainString(),
+        assertAll(() -> { assertEquals("2000", cuenta2.getSaldo().toPlainString(),
                             () -> "El valor del saldo de la cuenta 2 no es el esperado ");
                 }, () -> {
                     assertEquals("3000", cuenta1.getSaldo().toPlainString());
@@ -125,17 +135,9 @@ class CuentaTest {
                 }, () -> {
                     assertEquals("BBVA", cuenta1.getBanco().getNombre());
                 }, () -> {
-                    //        assertEquals("Ariana", banco.getCuentas().stream().filter(cuenta -> cuenta.getPersona().equals("Ariana")).findFirst().get().getPersona())
-                    //       assertTrue(banco.getCuentas().stream().filter(cuenta -> cuenta.getPersona().equals("Ariana")).findFirst().isPresent());
                     assertTrue(banco.getCuentas().stream().anyMatch(cuenta -> cuenta.getPersona().equals("Ariana")));
                 }
 
         );
-
-
     }
-
-    //Muchos metodos assert - cuando falla uno - falla todos - assertAll - continuaran el resto de las pruebas
-
-
 }
