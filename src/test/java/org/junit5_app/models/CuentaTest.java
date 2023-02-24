@@ -1,12 +1,16 @@
 package org.junit5_app.models;
+
 import jdk.jfr.Enabled;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit5_app.exception.DineroInsuficienteException;
 
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.*;
@@ -14,19 +18,33 @@ import static org.junit.jupiter.api.Assumptions.*;
 
 // nest se generaran nodos con un orden de gerarquia
 
+
+//Ir a la congifuraicon de la corrida yt cambiar a tag asi que solo ejecutara los tagas  y agregar el nombre es ms as que nada ejecutar poor grupo
+
+
 class CuentaTest {
 
     Cuenta cuenta;
 
+    private TestInfo testInfo;
+    private TestReporter testReporter;
+
+
     @BeforeEach
-    void initMetodoTest(){
+    void initMetodoTest(TestInfo testInfo, TestReporter testReporter) {
         this.cuenta = new Cuenta("Andres", new BigDecimal(2500));
+        //inyeccion de dependencia . test info y resporter
+
+        this.testInfo = testInfo;
+        this.testReporter = testReporter;
+        testReporter.publishEntry("Ejecutando: " + this.testInfo.getDisplayName() + " " + this.testInfo.getTestMethod()
+                + " con las etiquetas ");
 
         System.out.println("(inidio del metodo) Lo que se repite a cada rato dentro de los metodos");
     }
 
     @AfterEach
-    void tearDown(){
+    void tearDown() {
         System.out.println("finaliza los metodos");
     }
 
@@ -42,9 +60,10 @@ class CuentaTest {
     }
 
     @Test //metodos
-    @Disabled
+//    @Disabled
     @DisplayName("Probando el nombr de la cuenta corriente!")
     void testNombreCuenta() {
+
 // Para fallar la prueba(metodo)  -    fail();
         cuenta.setPersona("Palacios");
         String esperando = "Palacios";
@@ -63,27 +82,34 @@ class CuentaTest {
         assertEquals(cuenta2, cuenta);
     }
 
-    @Test
+    //! Peruebas parametrizadaspuede pasarcce informacion vcs como archivo o como valores y 2000,1000 pasan a ser independientes yame entenderas
+    @ParameterizedTest
+    @ValueSource(strings = {"100", "200", "300", "400", "500"})
     @DisplayName("Debe gestionar el debito del cliente")
-    void testDebitoCuenta() {
-        cuenta.debito(new BigDecimal(100));
+    void testDebitoCuenta(String monto) { // solito se inyecta el valor
+        cuenta.debito(new BigDecimal(monto));
         assertNotNull(cuenta.getSaldo());
-        assertEquals(2400, cuenta.getSaldo().intValue());
-        assertEquals("2400", cuenta.getSaldo().toPlainString());
-
+        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
     }
 
-
+    //pruebas con tag , aplica cada uno de los metodos
+    @Tag("param")
     @Test
     @DisplayName("Debe gestionar el credito del cliente")
     void testCreditoCuenta() {
+
+        if (testInfo.getTags().contains("params")) {
+            System.out.println("Sip el es el tags param ");
+        }
+
         cuenta.credito(new BigDecimal(500));
         assertNotNull(cuenta.getSaldo());
         assertEquals(3000, cuenta.getSaldo().intValue());
         assertEquals("3000", cuenta.getSaldo().toPlainString());
     }
 
-
+    //ejecutara los metodos asociados a su etiqueta - puede a ver mas de un tag
+    @Tag("Dinero")
     @Test
     void testDineroInsuficienteException() {
         System.out.println(DineroInsuficienteException.class);
@@ -95,9 +121,13 @@ class CuentaTest {
         assertEquals(esperado, actual);
     }
 
+    //cuando el valor a evaluar sea aleatorio
+    @RepeatedTest(value = 5, name = "Repeticion numero {currentRepetition} de {totalRepetitions}")
+    void transferirDineroCuentas(RepetitionInfo info) {
+        if (info.getCurrentRepetition() == 3) {
+            System.out.println(info.getCurrentRepetition() + "estamos :D ");
 
-    @RepeatedTest(5)
-    void transferirDineroCuentas() {
+        }
         Cuenta cuenta1 = new Cuenta("Palacios", new BigDecimal("2500"));
         Cuenta cuenta2 = new Cuenta("Ariana", new BigDecimal("2500"));
         Banco banco = new Banco();
@@ -118,7 +148,8 @@ class CuentaTest {
 
         banco.setNombre("BBVA");
         banco.transferir(cuenta2, cuenta1, new BigDecimal(500));
-        assertAll(() -> { assertEquals("2000", cuenta2.getSaldo().toPlainString(),
+        assertAll(() -> {
+                    assertEquals("2000", cuenta2.getSaldo().toPlainString(),
                             () -> "El valor del saldo de la cuenta 2 no es el esperado ");
                 }, () -> {
                     assertEquals("3000", cuenta1.getSaldo().toPlainString());
@@ -138,11 +169,11 @@ class CuentaTest {
 
 
     @Nested // para agrupar pruebas dentro de sus propios test, pero teniendo en ceunta la clase principal@
-        @DisplayName("Se le peude dar al a clase un nombre para ser mas esceificos ")
-    class sistemasOperativos{
+    @DisplayName("Se le peude dar al a clase un nombre para ser mas esceificos ")
+    class sistemasOperativos {
         @Test
         @EnabledOnOs(OS.WINDOWS)
-        void testSoloWindows(){
+        void testSoloWindows() {
 
         }
 
@@ -150,17 +181,15 @@ class CuentaTest {
 
         @Test
         @EnabledOnOs({OS.LINUX, OS.MAC})
-        void testSoloLinuxMac(){
+        void testSoloLinuxMac() {
 
         }
 
         @Test
         @DisabledOnOs(OS.WINDOWS)
-        void testNoWindows(){
+        void testNoWindows() {
 
         }
-
-
 
 
     }
@@ -168,58 +197,54 @@ class CuentaTest {
 
     //desabilitar si existe scierta cosa en el sistema
     @Nested
-    class JavaVersionTest{
+    class JavaVersionTest {
         @Test
         @EnabledOnJre(JRE.JAVA_17)
-        void soloEnJdk17(){
+        void soloEnJdk17() {
 
         }
     }
 
     @Nested
-    class SistemPropertiesTest{
+    class SistemPropertiesTest {
         @Test
-        void imprimirPropiedades(){
+        void imprimirPropiedades() {
             Properties properties = System.getProperties();
-            properties.forEach((k, l)-> System.out.println(k + " : " + l));
+            properties.forEach((k, l) -> System.out.println(k + " : " + l));
         }
+
         @Test
         @EnabledIfSystemProperty(named = "java.version", matches = "17")
-        void testJavaVersion(){
+        void testJavaVersion() {
 
         }
 
 
         @Test
         @EnabledIfSystemProperty(named = "ENV", matches = "dev")
-        void testUsername(){
+        void testUsername() {
         }
-
-
-
 
 
         @Test
         @DisabledIfSystemProperty(named = "os.arch", matches = "32")
-        void testSolo64(){
+        void testSolo64() {
 
         }
-
 
 
     }
 
     @Nested
-    class VariablesAmbienteTest{
+    class VariablesAmbienteTest {
 
         //Vairables del sistema operativo
 
         @Test
-        void imprimirVariablesAmbiente(){
+        void imprimirVariablesAmbiente() {
             Map<String, String> getenv = System.getenv();
-            getenv.forEach((k,v)-> System.out.println(k+ " : " + v));
+            getenv.forEach((k, v) -> System.out.println(k + " : " + v));
         }
-
 
 
         //aseption afirmar prueba unitaria
@@ -251,6 +276,24 @@ class CuentaTest {
         }
     }
 
+    @Nested
+    @Tag("timeout")
+    class EjemploTimeoutTest {
+        @Test
+        @Timeout(1)
+        void pruebaTimeout() throws InterruptedException {
+
+            TimeUnit.MILLISECONDS.sleep(100);
+        }
+        @Test
+
+        @Timeout(value = 1000, unit = TimeUnit.MILLISECONDS)
+        void pruebaTimeout2() throws InterruptedException {
+            //simular uan carga pesada en el codigo :D SECONS, Miliseconsds
+            TimeUnit.MILLISECONDS.sleep(900);
+        }
+
+    }
 
 
 }
